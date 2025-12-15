@@ -18,6 +18,11 @@ interface EventContextType {
   sponsors: Sponsor[];
   addSponsor: (file: File) => Promise<void>;
   removeSponsor: (id: string) => Promise<void>;
+  // Auth
+  isAuthenticated: boolean;
+  loginAdmin: (username: string, pass: string) => boolean;
+  logoutAdmin: () => void;
+  updateAdminPassword: (newPass: string) => Promise<boolean>;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
@@ -36,6 +41,11 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       results: {}
   });
 
+  // Auth State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentAdminPassword, setCurrentAdminPassword] = useState('SMTsec2026'); // Default fallback
+  const ADMIN_USERNAME = 'ArrowSMT';
+
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
     const fetchData = async () => {
@@ -44,8 +54,6 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         .from('users')
         .select('*');
       if (usersData) {
-        // Map DB snake_case to TS camelCase if necessary, or ensure Types match. 
-        // Our SQL uses snake_case for ticket_numbers, checked_in, etc.
         const mappedUsers: User[] = usersData.map((u: any) => ({
            id: u.id,
            name: u.name,
@@ -71,7 +79,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         })));
       }
 
-      // 3. Fetch Global State
+      // 3. Fetch Global State (App State + Lottery + Admin Password)
       const { data: globalData } = await supabase.from('global_state').select('*').eq('id', 1).single();
       if (globalData) {
          setLocalAppState(globalData.app_state as AppState);
@@ -82,6 +90,11 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              isSpinning: globalData.lottery_is_spinning,
              results: globalData.lottery_results || {}
          });
+         
+         // Set password if exists in DB, otherwise keep default
+         if (globalData.admin_password) {
+             setCurrentAdminPassword(globalData.admin_password);
+         }
       }
     };
 
@@ -144,6 +157,10 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                  isSpinning: g.lottery_is_spinning,
                  results: g.lottery_results || {}
              });
+             // Update password in real-time (e.g. if changed on another device)
+             if (g.admin_password) {
+                 setCurrentAdminPassword(g.admin_password);
+             }
           }
       })
       .subscribe();
@@ -153,9 +170,39 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
   }, []);
 
+  // --- AUTH METHODS ---
+
+  const loginAdmin = (username: string, pass: string): boolean => {
+      if (username === ADMIN_USERNAME && pass === currentAdminPassword) {
+          setIsAuthenticated(true);
+          return true;
+      }
+      return false;
+  };
+
+  const logoutAdmin = () => {
+      setIsAuthenticated(false);
+  };
+
+  const updateAdminPassword = async (newPass: string): Promise<boolean> => {
+      // Update local state optimistic
+      setCurrentAdminPassword(newPass);
+      
+      // Update DB
+      const { error } = await supabase
+        .from('global_state')
+        .update({ admin_password: newPass })
+        .eq('id', 1);
+        
+      if (error) {
+          console.error("Failed to update password", error);
+          return false;
+      }
+      return true;
+  };
+
   // --- ACTIONS ---
 
-  // Helper to generate unique numbers (local logic moved to check against current state)
   const generateUniqueNumbers = (existingUsers: User[]): number[] => {
     const usedNumbers = new Set(existingUsers.flatMap(u => u.ticketNumbers));
     const newNumbers: number[] = [];
@@ -188,8 +235,6 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return null;
     }
 
-    // Mapping back is optional as Realtime will update it, 
-    // but returning the object helps the UI respond instantly.
     return {
         id: data.id,
         name: data.name,
@@ -209,7 +254,6 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const checkInUser = async (id: string) => {
-    // Check if UUID is valid first or if exists
     const user = users.find(u => u.id === id);
     if (!user) return false;
 
@@ -236,15 +280,11 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return true;
   };
 
-  // --- STATE SETTERS (SYNC TO DB) ---
-
   const setAppState = async (state: AppState) => {
-      // Optimistic update
       setLocalAppState(state);
       await supabase.from('global_state').update({ app_state: state }).eq('id', 1);
   };
 
-  // Custom setter for Lottery that pushes to DB
   const updateLotteryState = async (newStateOrFn: LotteryState | ((prev: LotteryState) => LotteryState)) => {
       let newState: LotteryState;
       if (typeof newStateOrFn === 'function') {
@@ -252,8 +292,6 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       } else {
           newState = newStateOrFn;
       }
-
-      // Optimistic
       setLocalLotteryState(newState);
 
       await supabase.from('global_state').update({
@@ -336,9 +374,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              const phone = normalizeKey(row, "Telefone");
 
              if (name && email) {
-                // Check if email exists locally first to avoid DB call overhead in loop (optional optimization)
                 if (users.some(u => u.email === email)) continue;
-
                 await registerUser(String(name), String(email), String(phone || ""), String(company || ""));
                 count++;
              }
@@ -366,12 +402,16 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       appState,
       setAppState,
       lotteryState,
-      setLotteryState: updateLotteryState as any, // Cast to any to fit the React.Dispatch type signature even though we wrapped logic
+      setLotteryState: updateLotteryState as any,
       exportUsersToExcel,
       importUsersFromExcel,
       sponsors,
       addSponsor,
-      removeSponsor
+      removeSponsor,
+      isAuthenticated,
+      loginAdmin,
+      logoutAdmin,
+      updateAdminPassword
     }}>
       {children}
     </EventContext.Provider>

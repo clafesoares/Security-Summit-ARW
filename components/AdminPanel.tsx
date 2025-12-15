@@ -1,15 +1,33 @@
 import React, { useState, useRef } from 'react';
 import { useEvent } from '../context/EventContext';
 import { AppState } from '../types';
-import { Download, Upload, ShieldAlert, CheckCircle, Users, Trophy, Trash2, RotateCcw, ImagePlus, XCircle, Clock, Check } from 'lucide-react';
+import { Download, Upload, ShieldAlert, CheckCircle, Users, Trophy, Trash2, RotateCcw, ImagePlus, XCircle, Clock, Check, UserCog, Lock, LogOut } from 'lucide-react';
+import { AdminLogin } from './AdminLogin';
 
 export const AdminPanel: React.FC = () => {
-  const { users, checkInUser, approveUser, deleteUser, exportUsersToExcel, importUsersFromExcel, appState, setAppState, lotteryState, setLotteryState, sponsors, addSponsor, removeSponsor } = useEvent();
-  const [activeTab, setActiveTab] = useState<'users' | 'accreditation' | 'controls' | 'sponsors'>('users');
+  const { 
+    users, checkInUser, approveUser, deleteUser, exportUsersToExcel, importUsersFromExcel, 
+    appState, setAppState, lotteryState, setLotteryState, 
+    sponsors, addSponsor, removeSponsor,
+    isAuthenticated, logoutAdmin, updateAdminPassword
+  } = useEvent();
+
+  const [activeTab, setActiveTab] = useState<'users' | 'accreditation' | 'controls' | 'sponsors' | 'profile'>('users');
   const [scanId, setScanId] = useState('');
   const [accreditationMsg, setAccreditationMsg] = useState('');
+  
+  // Profile State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sponsorInputRef = useRef<HTMLInputElement>(null);
+
+  // AUTH PROTECTION
+  if (!isAuthenticated) {
+    return <AdminLogin />;
+  }
 
   const handleCheckIn = () => {
     const success = checkInUser(scanId);
@@ -113,9 +131,38 @@ export const AdminPanel: React.FC = () => {
     return user ? user.name : "Desconhecido";
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (newPassword !== confirmPassword) {
+          setPasswordMsg("Erro: As passwords não coincidem.");
+          return;
+      }
+      if (newPassword.length < 6) {
+          setPasswordMsg("Erro: A password deve ter pelo menos 6 caracteres.");
+          return;
+      }
+
+      const success = await updateAdminPassword(newPassword);
+      if (success) {
+          setPasswordMsg("Sucesso: Password atualizada com sucesso.");
+          setNewPassword('');
+          setConfirmPassword('');
+      } else {
+          setPasswordMsg("Erro: Falha ao atualizar a base de dados.");
+      }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h2 className="text-4xl text-center text-yellow-600 mb-8 border-b border-yellow-800 pb-4 display-font">Alto Conselho (Admin)</h2>
+      <div className="flex justify-between items-center mb-8 border-b border-yellow-800 pb-4">
+          <h2 className="text-4xl text-yellow-600 display-font">Alto Conselho (Admin)</h2>
+          <button 
+            onClick={logoutAdmin}
+            className="flex items-center gap-2 text-red-400 hover:text-red-300 border border-red-900 px-4 py-2 rounded hover:bg-red-900/20 transition"
+          >
+              <LogOut size={18} /> Sair
+          </button>
+      </div>
 
       {/* Tabs */}
       <div className="flex justify-center flex-wrap gap-2 mb-8">
@@ -123,7 +170,8 @@ export const AdminPanel: React.FC = () => {
             { id: 'users', label: 'Registos', icon: Users },
             { id: 'accreditation', label: 'Acreditação', icon: CheckCircle },
             { id: 'controls', label: 'Controlos', icon: ShieldAlert },
-            { id: 'sponsors', label: 'Patrocinadores', icon: ImagePlus }
+            { id: 'sponsors', label: 'Patrocinadores', icon: ImagePlus },
+            { id: 'profile', label: 'Perfil', icon: UserCog }
         ].map(tab => (
             <button 
                 key={tab.id}
@@ -379,6 +427,69 @@ export const AdminPanel: React.FC = () => {
                         ))}
                     </div>
                 )}
+            </div>
+        )}
+
+        {/* PROFILE TAB */}
+        {activeTab === 'profile' && (
+            <div className="max-w-2xl mx-auto flex flex-col items-center">
+                <div className="bg-yellow-900/20 p-8 rounded-lg border border-yellow-700 w-full">
+                    <div className="flex items-center gap-4 mb-6 border-b border-yellow-800 pb-4">
+                        <div className="p-3 bg-yellow-900 rounded-full border border-yellow-600">
+                            <Lock size={32} className="text-yellow-100" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl text-yellow-500 display-font">Credenciais de Acesso</h3>
+                            <p className="text-gray-400 text-sm">Atualize a chave mestra da aplicação.</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleChangePassword} className="space-y-6">
+                        <div>
+                            <label className="block text-gray-400 mb-2 text-sm uppercase tracking-wide">Nova Password</label>
+                            <input 
+                                type="password" 
+                                required
+                                minLength={6}
+                                className="w-full bg-gray-800 border border-gray-600 p-3 text-white rounded focus:border-yellow-500 focus:outline-none"
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                                placeholder="Mínimo 6 caracteres"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-400 mb-2 text-sm uppercase tracking-wide">Confirmar Nova Password</label>
+                            <input 
+                                type="password" 
+                                required
+                                className="w-full bg-gray-800 border border-gray-600 p-3 text-white rounded focus:border-yellow-500 focus:outline-none"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                placeholder="Repita a password"
+                            />
+                        </div>
+
+                        {passwordMsg && (
+                            <div className={`p-3 rounded text-sm font-bold text-center ${passwordMsg.includes("Sucesso") ? "bg-green-900/50 text-green-300" : "bg-red-900/50 text-red-300"}`}>
+                                {passwordMsg}
+                            </div>
+                        )}
+
+                        <div className="pt-4 flex justify-end">
+                            <button 
+                                type="submit" 
+                                className="bg-yellow-700 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded shadow-lg transition-transform transform hover:scale-105"
+                            >
+                                ATUALIZAR PASSWORD
+                            </button>
+                        </div>
+                    </form>
+
+                    <div className="mt-8 p-4 bg-blue-900/20 border border-blue-800 rounded text-sm text-blue-300">
+                        <p className="font-bold mb-1">Nota Informativa:</p>
+                        <p>Ao alterar a password, a alteração será propagada para todos os dispositivos ligados ao servidor (Supabase) em tempo real.</p>
+                    </div>
+                </div>
             </div>
         )}
 
