@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useEvent } from '../context/EventContext';
 import { AppState } from '../types';
-import { Download, Upload, ShieldAlert, CheckCircle, Users, Trophy, Trash2, RotateCcw, ImagePlus, XCircle, Clock, Check, UserCog, Lock, LogOut } from 'lucide-react';
+import { Download, Upload, ShieldAlert, CheckCircle, Users, Trophy, Trash2, RotateCcw, ImagePlus, XCircle, Clock, Check, UserCog, Lock, LogOut, LayoutTemplate } from 'lucide-react';
 import { AdminLogin } from './AdminLogin';
 
 export const AdminPanel: React.FC = () => {
@@ -9,10 +9,11 @@ export const AdminPanel: React.FC = () => {
     users, checkInUser, approveUser, deleteUser, exportUsersToExcel, importUsersFromExcel, 
     appState, setAppState, lotteryState, setLotteryState, 
     sponsors, addSponsor, removeSponsor,
-    isAuthenticated, logoutAdmin, updateAdminPassword
+    isAuthenticated, logoutAdmin, updateAdminPassword,
+    eventImage, uploadEventImage, removeEventImage
   } = useEvent();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'accreditation' | 'controls' | 'sponsors' | 'profile'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'accreditation' | 'controls' | 'sponsors' | 'event' | 'profile'>('users');
   const [scanId, setScanId] = useState('');
   const [accreditationMsg, setAccreditationMsg] = useState('');
   
@@ -23,6 +24,7 @@ export const AdminPanel: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sponsorInputRef = useRef<HTMLInputElement>(null);
+  const eventImageInputRef = useRef<HTMLInputElement>(null);
 
   // AUTH PROTECTION
   if (!isAuthenticated) {
@@ -71,6 +73,18 @@ export const AdminPanel: React.FC = () => {
         await addSponsor(file);
         if (sponsorInputRef.current) sponsorInputRef.current.value = "";
     }
+  };
+
+  const handleEventImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+          if (file.size > 5 * 1024 * 1024) {
+              alert("A imagem é demasiado grande. Por favor utilize imagens inferiores a 5MB.");
+              return;
+          }
+          await uploadEventImage(file);
+          if (eventImageInputRef.current) eventImageInputRef.current.value = "";
+      }
   };
 
   const startLottery = (drawNum: 1 | 2 | 3) => {
@@ -171,6 +185,7 @@ export const AdminPanel: React.FC = () => {
             { id: 'accreditation', label: 'Acreditação', icon: CheckCircle },
             { id: 'controls', label: 'Controlos', icon: ShieldAlert },
             { id: 'sponsors', label: 'Patrocinadores', icon: ImagePlus },
+            { id: 'event', label: 'Evento', icon: LayoutTemplate },
             { id: 'profile', label: 'Perfil', icon: UserCog }
         ].map(tab => (
             <button 
@@ -374,6 +389,57 @@ export const AdminPanel: React.FC = () => {
                              )}
                         </div>
                     )}
+                </div>
+            </div>
+        )}
+
+        {/* EVENT CONFIG TAB */}
+        {activeTab === 'event' && (
+            <div className="flex flex-col items-center">
+                <div className="w-full max-w-3xl">
+                    <h3 className="text-2xl text-gray-300 mb-6">Configuração de Imagem do Evento</h3>
+                    <p className="text-gray-400 mb-6 text-sm">Carregue uma imagem personalizada para ser exibida na secção de "Localização" da aplicação dos participantes. Esta imagem aparecerá por baixo da morada.</p>
+                    
+                    <div className="bg-white/5 border border-yellow-900/30 rounded-lg p-8 flex flex-col items-center">
+                        {eventImage ? (
+                            <div className="w-full mb-6">
+                                <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-yellow-700 shadow-xl group">
+                                    <img src={eventImage} alt="Event Preview" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={removeEventImage}
+                                            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-500 font-bold flex items-center gap-2"
+                                        >
+                                            <Trash2 size={18} /> REMOVER IMAGEM
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-center text-green-500 mt-2 text-sm flex items-center justify-center">
+                                    <Check size={14} className="mr-1" /> Imagem ativa
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center mb-6 bg-black/20">
+                                <ImagePlus size={48} className="text-gray-500 mb-2" />
+                                <span className="text-gray-500">Nenhuma imagem personalizada definida</span>
+                                <span className="text-gray-600 text-xs mt-1">Será usada a imagem padrão do Convento</span>
+                            </div>
+                        )}
+
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            ref={eventImageInputRef} 
+                            onChange={handleEventImageUpload} 
+                            className="hidden" 
+                        />
+                        <button 
+                            onClick={() => eventImageInputRef.current?.click()} 
+                            className="bg-yellow-700 hover:bg-yellow-600 text-white px-8 py-3 rounded transition border border-yellow-900 font-bold flex items-center gap-2 shadow-lg"
+                        >
+                            <Upload size={20} /> {eventImage ? "SUBSTITUIR IMAGEM" : "CARREGAR IMAGEM"}
+                        </button>
+                    </div>
                 </div>
             </div>
         )}

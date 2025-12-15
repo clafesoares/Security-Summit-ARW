@@ -9,7 +9,7 @@ import { Scroll, MapPin, Calendar, Clock, Ticket, Trophy, QrCode, X } from 'luci
 type ViewState = 'landing' | 'register' | 'login' | 'dashboard';
 
 export const Registration: React.FC = () => {
-  const { registerUser, users, sponsors, visitStand } = useEvent();
+  const { registerUser, users, sponsors, visitStand, eventImage } = useEvent();
   const [view, setView] = useState<ViewState>('landing');
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', company: '' });
   const [loginEmail, setLoginEmail] = useState('');
@@ -347,25 +347,37 @@ export const Registration: React.FC = () => {
                                         <p className="text-gray-400">Terreiro D. João V, 2640-492 Mafra</p>
                                         <p className="text-xs text-gray-500 mt-1">GPS: 38.9369° N, 9.3259° W</p>
                                         
-                                        {/* COMPOSITE IMAGE SECTION */}
+                                        {/* COMPOSITE IMAGE SECTION OR CUSTOM IMAGE */}
                                         <div className="mt-4 h-48 rounded-lg overflow-hidden border border-yellow-900/50 relative shadow-xl group bg-black">
-                                             {/* Background Convento - UPDATED URL */}
-                                             <img 
-                                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Pal%C3%A1cio_Nacional_de_Mafra_03.jpg/1280px-Pal%C3%A1cio_Nacional_de_Mafra_03.jpg" 
-                                                alt="Convento de Mafra"
-                                                className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
-                                             />
-                                             {/* Overlay Content */}
-                                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col items-center justify-end p-4 pb-6 pointer-events-none">
-                                                 <img 
-                                                    src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Arrow_Electronics_logo.svg/2560px-Arrow_Electronics_logo.svg.png" 
-                                                    alt="Arrow Logo" 
-                                                    className="h-10 mb-2 filter brightness-0 invert opacity-90 drop-shadow-lg"
-                                                 />
-                                                 <span className="text-yellow-500 font-cinzel text-lg font-bold tracking-[0.2em] uppercase drop-shadow-md border-t border-yellow-500/50 pt-2 mt-1">
-                                                     Security Summit 2026
-                                                 </span>
-                                             </div>
+                                            {eventImage ? (
+                                                // CUSTOM UPLOADED IMAGE
+                                                <img 
+                                                    src={eventImage} 
+                                                    alt="Imagem do Evento"
+                                                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                                                />
+                                            ) : (
+                                                // DEFAULT COMPOSITE
+                                                <>
+                                                    {/* Background Convento */}
+                                                    <img 
+                                                        src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Convento_de_Mafra_01.jpg/1280px-Convento_de_Mafra_01.jpg" 
+                                                        alt="Convento de Mafra"
+                                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500"
+                                                    />
+                                                    {/* Overlay Content */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col items-center justify-end p-4 pb-6 pointer-events-none">
+                                                        <img 
+                                                            src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Arrow_Electronics_logo.svg/2560px-Arrow_Electronics_logo.svg.png" 
+                                                            alt="Arrow Logo" 
+                                                            className="h-10 mb-2 filter brightness-0 invert opacity-90 drop-shadow-lg"
+                                                        />
+                                                        <span className="text-yellow-500 font-cinzel text-lg font-bold tracking-[0.2em] uppercase drop-shadow-md border-t border-yellow-500/50 pt-2 mt-1">
+                                                            Security Summit 2026
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 

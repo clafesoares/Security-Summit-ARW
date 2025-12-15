@@ -18,6 +18,10 @@ interface EventContextType {
   sponsors: Sponsor[];
   addSponsor: (file: File) => Promise<void>;
   removeSponsor: (id: string) => Promise<void>;
+  // Event Image
+  eventImage: string | null;
+  uploadEventImage: (file: File) => Promise<void>;
+  removeEventImage: () => Promise<void>;
   // Auth
   isAuthenticated: boolean;
   loginAdmin: (username: string, pass: string) => boolean;
@@ -40,6 +44,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       isSpinning: false,
       results: {}
   });
+  const [eventImage, setEventImage] = useState<string | null>(null);
 
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -79,7 +84,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         })));
       }
 
-      // 3. Fetch Global State (App State + Lottery + Admin Password)
+      // 3. Fetch Global State (App State + Lottery + Admin Password + Event Image)
       const { data: globalData } = await supabase.from('global_state').select('*').eq('id', 1).single();
       if (globalData) {
          setLocalAppState(globalData.app_state as AppState);
@@ -94,6 +99,11 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
          // Set password if exists in DB, otherwise keep default
          if (globalData.admin_password) {
              setCurrentAdminPassword(globalData.admin_password);
+         }
+
+         // Set Event Image
+         if (globalData.event_image_base64) {
+             setEventImage(globalData.event_image_base64);
          }
       }
     };
@@ -157,9 +167,13 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                  isSpinning: g.lottery_is_spinning,
                  results: g.lottery_results || {}
              });
-             // Update password in real-time (e.g. if changed on another device)
+             // Update password in real-time
              if (g.admin_password) {
                  setCurrentAdminPassword(g.admin_password);
+             }
+             // Update event image
+             if (g.event_image_base64 !== undefined) {
+                 setEventImage(g.event_image_base64);
              }
           }
       })
@@ -185,20 +199,9 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateAdminPassword = async (newPass: string): Promise<boolean> => {
-      // Update local state optimistic
       setCurrentAdminPassword(newPass);
-      
-      // Update DB
-      const { error } = await supabase
-        .from('global_state')
-        .update({ admin_password: newPass })
-        .eq('id', 1);
-        
-      if (error) {
-          console.error("Failed to update password", error);
-          return false;
-      }
-      return true;
+      const { error } = await supabase.from('global_state').update({ admin_password: newPass }).eq('id', 1);
+      return !error;
   };
 
   // --- ACTIONS ---
@@ -323,6 +326,25 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       await supabase.from('sponsors').delete().eq('id', id);
   };
 
+  const uploadEventImage = async (file: File) => {
+      return new Promise<void>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async () => {
+              const base64 = reader.result as string;
+              setEventImage(base64);
+              await supabase.from('global_state').update({ event_image_base64: base64 }).eq('id', 1);
+              resolve();
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+      });
+  };
+
+  const removeEventImage = async () => {
+      setEventImage(null);
+      await supabase.from('global_state').update({ event_image_base64: null }).eq('id', 1);
+  };
+
   const exportUsersToExcel = async () => {
     const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(users.map(u => ({
@@ -408,6 +430,9 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       sponsors,
       addSponsor,
       removeSponsor,
+      eventImage,
+      uploadEventImage,
+      removeEventImage,
       isAuthenticated,
       loginAdmin,
       logoutAdmin,
