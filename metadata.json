@@ -1,0 +1,7 @@
+{
+  "name": "Cyber Security Summit - Monastery Edition",
+  "description": "Uma plataforma de registo de eventos com tema de mosteiro antigo, com sorteio estilo relógio e simulação de ciberataque.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
