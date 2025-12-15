@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEvent } from '../context/EventContext';
 import { generateMonasteryWisdom } from '../services/geminiService';
 import { SecurityTip, User } from '../types';
 import { STANDS_LIST } from '../constants';
 import { QRCodeSVG } from 'qrcode.react';
-import { Scroll, MapPin, Calendar, Clock, Ticket, Trophy, QrCode, X } from 'lucide-react';
+import { Scroll, MapPin, Calendar, Clock, Ticket, Trophy, QrCode, X, CheckCircle } from 'lucide-react';
 
 type ViewState = 'landing' | 'register' | 'login' | 'dashboard';
 
@@ -23,6 +23,26 @@ export const Registration: React.FC = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scanInput, setScanInput] = useState('');
 
+  // Approval Notification State
+  const [showApprovedModal, setShowApprovedModal] = useState(false);
+  const [previousStatus, setPreviousStatus] = useState<string | null>(null);
+
+  // Monitor user status changes for real-time approval notification
+  useEffect(() => {
+    if (currentUser) {
+        // Sync local user with global state updates
+        const updatedUser = users.find(u => u.id === currentUser.id);
+        if (updatedUser) {
+            // Check if status changed from pending to approved
+            if (previousStatus === 'pending' && updatedUser.status === 'approved') {
+                setShowApprovedModal(true);
+            }
+            setCurrentUser(updatedUser);
+            setPreviousStatus(updatedUser.status);
+        }
+    }
+  }, [users, currentUser?.id]); // Depend on global users list and current ID
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,6 +60,7 @@ export const Registration: React.FC = () => {
         
         if (user) {
             setCurrentUser(user);
+            setPreviousStatus(user.status);
             
             // Get AI Content
             const tip = await generateMonasteryWisdom();
@@ -62,6 +83,7 @@ export const Registration: React.FC = () => {
       const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
       if (user) {
           setCurrentUser(user);
+          setPreviousStatus(user.status);
           setView('dashboard');
           setErrorMsg('');
       } else {
@@ -77,13 +99,8 @@ export const Registration: React.FC = () => {
       
       if (stand) {
           visitStand(currentUser.id, stand.id);
-          // Update local user state to reflect change immediately
-          const updatedUser = { 
-              ...currentUser, 
-              visitedStands: currentUser.visitedStands ? [...currentUser.visitedStands, stand.id] : [stand.id] 
-          };
-          setCurrentUser(updatedUser);
-          
+          // Update local user state to reflect change immediately (although context will sync it back)
+          // We rely on context sync in useEffect, but for immediate feedback:
           alert(`Relíquia desbloqueada: ${stand.name}!`);
           setShowScanner(false);
           setScanInput('');
@@ -92,8 +109,36 @@ export const Registration: React.FC = () => {
       }
   };
 
+  const closeApprovedModal = () => {
+      setShowApprovedModal(false);
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto p-4 flex flex-col items-center min-h-[600px]">
+        
+        {/* APPROVED MODAL POPUP */}
+        {showApprovedModal && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                <div className="relative max-w-md w-full parchment rounded-lg shadow-2xl border-4 border-yellow-600 p-8 text-center">
+                    <div className="flex justify-center mb-4">
+                        <CheckCircle size={64} className="text-green-700 animate-bounce" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-yellow-900 mb-2 display-font">
+                        Inscrição Aprovada!
+                    </h3>
+                    <p className="text-gray-800 mb-6 font-serif">
+                        A tua entrada na ordem foi autorizada pelo Abade Supremo. 
+                        Tens agora acesso total ao evento e ao teu passe digital.
+                    </p>
+                    <button 
+                        onClick={closeApprovedModal}
+                        className="bg-yellow-900 hover:bg-yellow-800 text-yellow-100 font-bold py-3 px-8 rounded shadow-lg uppercase tracking-widest"
+                    >
+                        Entrar na App
+                    </button>
+                </div>
+            </div>
+        )}
         
         {/* LANDING VIEW */}
         {view === 'landing' && (
@@ -358,7 +403,7 @@ export const Registration: React.FC = () => {
                                                 />
                                             ) : (
                                                 // DEFAULT COMPOSITE
-                                                <>
+                                                <div className="w-full h-full relative">
                                                     {/* Background Convento */}
                                                     <img 
                                                         src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Convento_de_Mafra_01.jpg/1280px-Convento_de_Mafra_01.jpg" 
@@ -376,7 +421,7 @@ export const Registration: React.FC = () => {
                                                             Security Summit 2026
                                                         </span>
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>

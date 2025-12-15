@@ -6,6 +6,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { AttackOverlay } from './components/AttackOverlay';
 import { Roulette } from './components/Roulette';
 import { SuspiciousMonk } from './components/SuspiciousMonk';
+import { BroadcastOverlay } from './components/BroadcastOverlay';
 import { Shield } from 'lucide-react';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,6 +42,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] pointer-events-none"></div>
 
       <AttackOverlay />
+      <BroadcastOverlay />
       <Roulette />
       <SuspiciousMonk />
 

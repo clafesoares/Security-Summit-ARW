@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useEvent } from '../context/EventContext';
 import { AppState } from '../types';
-import { Download, Upload, ShieldAlert, CheckCircle, Users, Trophy, Trash2, RotateCcw, ImagePlus, XCircle, Clock, Check, UserCog, Lock, LogOut, LayoutTemplate } from 'lucide-react';
+import { Download, Upload, ShieldAlert, CheckCircle, Users, Trophy, Trash2, RotateCcw, ImagePlus, XCircle, Clock, Check, UserCog, Lock, LogOut, LayoutTemplate, MessageSquare, Send } from 'lucide-react';
 import { AdminLogin } from './AdminLogin';
 
 export const AdminPanel: React.FC = () => {
@@ -10,12 +10,14 @@ export const AdminPanel: React.FC = () => {
     appState, setAppState, lotteryState, setLotteryState, 
     sponsors, addSponsor, removeSponsor,
     isAuthenticated, logoutAdmin, updateAdminPassword,
-    eventImage, uploadEventImage, removeEventImage
+    eventImage, uploadEventImage, removeEventImage,
+    sendBroadcastMessage
   } = useEvent();
 
   const [activeTab, setActiveTab] = useState<'users' | 'accreditation' | 'controls' | 'sponsors' | 'event' | 'profile'>('users');
   const [scanId, setScanId] = useState('');
   const [accreditationMsg, setAccreditationMsg] = useState('');
+  const [broadcastText, setBroadcastText] = useState('');
   
   // Profile State
   const [newPassword, setNewPassword] = useState('');
@@ -53,6 +55,15 @@ export const AdminPanel: React.FC = () => {
     } else {
       setAppState(AppState.NORMAL);
     }
+  };
+
+  const handleSendBroadcast = async () => {
+      if (!broadcastText.trim()) return;
+      if (window.confirm("Esta mensagem aparecerá como Pop-up para TODOS os utilizadores ligados. Confirmar?")) {
+          await sendBroadcastMessage(broadcastText);
+          setBroadcastText('');
+          alert("Mensagem enviada com sucesso.");
+      }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,6 +323,30 @@ export const AdminPanel: React.FC = () => {
         {/* CONTROLS TAB */}
         {activeTab === 'controls' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Broadcast Message */}
+                <div className="border border-blue-900/50 bg-blue-950/20 p-6 rounded-lg flex flex-col col-span-1 md:col-span-2">
+                    <div className="flex items-center gap-3 mb-4">
+                        <MessageSquare size={32} className="text-blue-400" />
+                        <h3 className="text-xl text-blue-400 font-bold">Mensagem Global (Broadcast)</h3>
+                    </div>
+                    <p className="text-gray-400 mb-4 text-sm">Envie uma mensagem instantânea para todos os utilizadores ligados. Aparecerá como um aviso em destaque.</p>
+                    <div className="flex gap-4">
+                        <input 
+                            type="text" 
+                            className="flex-1 bg-gray-800 border border-blue-700 p-3 rounded text-white focus:outline-none focus:border-blue-500"
+                            placeholder="Escreva a sua mensagem aqui..."
+                            value={broadcastText}
+                            onChange={e => setBroadcastText(e.target.value)}
+                        />
+                        <button 
+                            onClick={handleSendBroadcast}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded font-bold flex items-center gap-2"
+                        >
+                            <Send size={18} /> ENVIAR
+                        </button>
+                    </div>
+                </div>
+
                 {/* Attack Control */}
                 <div className="border border-red-900/50 bg-red-950/20 p-6 rounded-lg flex flex-col items-center">
                     <ShieldAlert size={48} className="text-red-600 mb-4" />

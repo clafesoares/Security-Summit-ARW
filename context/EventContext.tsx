@@ -22,6 +22,9 @@ interface EventContextType {
   eventImage: string | null;
   uploadEventImage: (file: File) => Promise<void>;
   removeEventImage: () => Promise<void>;
+  // Broadcast
+  broadcastMessage: { id: string; text: string } | null;
+  sendBroadcastMessage: (text: string) => Promise<void>;
   // Auth
   isAuthenticated: boolean;
   loginAdmin: (username: string, pass: string) => boolean;
@@ -45,6 +48,9 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       results: {}
   });
   const [eventImage, setEventImage] = useState<string | null>(null);
+  
+  // Broadcast State
+  const [broadcastMessage, setBroadcastMessage] = useState<{ id: string; text: string } | null>(null);
 
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -84,7 +90,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         })));
       }
 
-      // 3. Fetch Global State (App State + Lottery + Admin Password + Event Image)
+      // 3. Fetch Global State
       const { data: globalData } = await supabase.from('global_state').select('*').eq('id', 1).single();
       if (globalData) {
          setLocalAppState(globalData.app_state as AppState);
@@ -96,14 +102,16 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              results: globalData.lottery_results || {}
          });
          
-         // Set password if exists in DB, otherwise keep default
          if (globalData.admin_password) {
              setCurrentAdminPassword(globalData.admin_password);
          }
 
-         // Set Event Image
          if (globalData.event_image_base64) {
              setEventImage(globalData.event_image_base64);
+         }
+
+         if (globalData.broadcast_message && globalData.broadcast_id) {
+             setBroadcastMessage({ id: globalData.broadcast_id, text: globalData.broadcast_message });
          }
       }
     };
@@ -167,13 +175,15 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                  isSpinning: g.lottery_is_spinning,
                  results: g.lottery_results || {}
              });
-             // Update password in real-time
              if (g.admin_password) {
                  setCurrentAdminPassword(g.admin_password);
              }
-             // Update event image
              if (g.event_image_base64 !== undefined) {
                  setEventImage(g.event_image_base64);
+             }
+             // Update broadcast
+             if (g.broadcast_message && g.broadcast_id) {
+                 setBroadcastMessage({ id: g.broadcast_id, text: g.broadcast_message });
              }
           }
       })
@@ -184,7 +194,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
   }, []);
 
-  // --- AUTH METHODS ---
+  // --- METHODS ---
 
   const loginAdmin = (username: string, pass: string): boolean => {
       if (username === ADMIN_USERNAME && pass === currentAdminPassword) {
@@ -203,8 +213,6 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const { error } = await supabase.from('global_state').update({ admin_password: newPass }).eq('id', 1);
       return !error;
   };
-
-  // --- ACTIONS ---
 
   const generateUniqueNumbers = (existingUsers: User[]): number[] => {
     const usedNumbers = new Set(existingUsers.flatMap(u => u.ticketNumbers));
@@ -345,6 +353,15 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       await supabase.from('global_state').update({ event_image_base64: null }).eq('id', 1);
   };
 
+  const sendBroadcastMessage = async (text: string) => {
+      const id = crypto.randomUUID();
+      await supabase.from('global_state').update({ 
+          broadcast_message: text,
+          broadcast_id: id
+      }).eq('id', 1);
+      setBroadcastMessage({ id, text });
+  };
+
   const exportUsersToExcel = async () => {
     const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(users.map(u => ({
@@ -433,6 +450,8 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       eventImage,
       uploadEventImage,
       removeEventImage,
+      broadcastMessage,
+      sendBroadcastMessage,
       isAuthenticated,
       loginAdmin,
       logoutAdmin,
