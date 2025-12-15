@@ -12,7 +12,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
 
-  // Background Image Logic
+  // Background Image Logic - Using reliable Wikimedia links
   const getBackgroundImage = () => {
     if (isAdmin) {
       // Mafra Library for Admin
@@ -26,15 +26,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="min-h-screen wood-pattern text-gray-200 flex flex-col relative overflow-hidden transition-all duration-700">
       
       {/* Background Pencil Sketch Effect */}
-      {/* Increased opacity and changed blending to ensure visibility */}
+      {/* Simplified blending to ensure image is visible */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none transition-all duration-1000 ease-in-out"
         style={{
           backgroundImage: `url(${getBackgroundImage()})`,
-          // High contrast + Sepia + Saturated Yellow = "Yellow Pencil" look
-          filter: 'grayscale(100%) sepia(100%) saturate(1000%) hue-rotate(5deg) contrast(120%) brightness(0.9)',
-          opacity: 0.4, 
-          mixBlendMode: 'screen', // 'screen' makes the light parts (yellow) show up on dark wood
+          // Adjusted filter: brighter, less grayscale, simple sepia
+          filter: 'sepia(80%) saturate(150%) hue-rotate(5deg) contrast(110%) brightness(0.6)',
+          opacity: 0.5, 
         }}
       />
       

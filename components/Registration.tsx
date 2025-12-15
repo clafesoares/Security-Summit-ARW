@@ -36,7 +36,6 @@ export const Registration: React.FC = () => {
     }
 
     try {
-        // FIX: Added await to resolve the Promise returned by registerUser
         const user = await registerUser(formData.name, formData.email, formData.phone, formData.company);
         
         if (user) {
@@ -347,13 +346,26 @@ export const Registration: React.FC = () => {
                                         <p className="text-lg font-serif">Convento de Mafra</p>
                                         <p className="text-gray-400">Terreiro D. João V, 2640-492 Mafra</p>
                                         <p className="text-xs text-gray-500 mt-1">GPS: 38.9369° N, 9.3259° W</p>
-                                        <div className="mt-4 h-48 bg-gray-800 rounded flex items-center justify-center overflow-hidden border border-gray-700 relative">
+                                        
+                                        {/* COMPOSITE IMAGE SECTION */}
+                                        <div className="mt-4 h-48 rounded-lg overflow-hidden border border-yellow-900/50 relative shadow-xl group bg-black">
+                                             {/* Background Convento - UPDATED URL */}
                                              <img 
-                                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Convento_de_Mafra_01.jpg/1280px-Convento_de_Mafra_01.jpg" 
+                                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Pal%C3%A1cio_Nacional_de_Mafra_03.jpg/1280px-Pal%C3%A1cio_Nacional_de_Mafra_03.jpg" 
                                                 alt="Convento de Mafra"
-                                                className="absolute inset-0 w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                                                className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
                                              />
-                                             <div className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white">Convento de Mafra</div>
+                                             {/* Overlay Content */}
+                                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col items-center justify-end p-4 pb-6 pointer-events-none">
+                                                 <img 
+                                                    src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Arrow_Electronics_logo.svg/2560px-Arrow_Electronics_logo.svg.png" 
+                                                    alt="Arrow Logo" 
+                                                    className="h-10 mb-2 filter brightness-0 invert opacity-90 drop-shadow-lg"
+                                                 />
+                                                 <span className="text-yellow-500 font-cinzel text-lg font-bold tracking-[0.2em] uppercase drop-shadow-md border-t border-yellow-500/50 pt-2 mt-1">
+                                                     Security Summit 2026
+                                                 </span>
+                                             </div>
                                         </div>
                                     </div>
 
