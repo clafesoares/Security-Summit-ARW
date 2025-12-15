@@ -348,13 +348,13 @@ export const Registration: React.FC = () => {
                                         <p className="text-xs text-gray-500 mt-1">GPS: 38.9369° N, 9.3259° W</p>
                                         
                                         {/* COMPOSITE IMAGE SECTION OR CUSTOM IMAGE */}
-                                        <div className="mt-4 h-48 rounded-lg overflow-hidden border border-yellow-900/50 relative shadow-xl group bg-black">
+                                        <div className="mt-4 h-64 w-full rounded-lg overflow-hidden border border-yellow-900/50 relative shadow-xl group bg-black flex items-center justify-center">
                                             {eventImage ? (
                                                 // CUSTOM UPLOADED IMAGE
                                                 <img 
                                                     src={eventImage} 
                                                     alt="Imagem do Evento"
-                                                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                                                    className="w-full h-full object-contain"
                                                 />
                                             ) : (
                                                 // DEFAULT COMPOSITE

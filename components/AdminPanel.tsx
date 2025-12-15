@@ -403,8 +403,12 @@ export const AdminPanel: React.FC = () => {
                     <div className="bg-white/5 border border-yellow-900/30 rounded-lg p-8 flex flex-col items-center">
                         {eventImage ? (
                             <div className="w-full mb-6">
-                                <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-yellow-700 shadow-xl group">
-                                    <img src={eventImage} alt="Event Preview" className="w-full h-full object-cover" />
+                                <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-yellow-700 shadow-xl group bg-black flex items-center justify-center">
+                                    <img 
+                                        src={eventImage} 
+                                        alt="Event Preview" 
+                                        className="w-full h-full object-contain" 
+                                    />
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button 
                                             onClick={removeEventImage}
